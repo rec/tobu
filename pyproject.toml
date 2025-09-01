@@ -1,0 +1,7 @@
+[project]
+name = "pytob"
+version = "0.1.0"
+description = "🧱 Build pytorch repositories 🧱"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
