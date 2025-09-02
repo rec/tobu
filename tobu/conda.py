@@ -1,7 +1,18 @@
+import copy
+import functools
 import yaml
+from pathlib import Path
+
+TEMPLATE_DIR = Path(__file__).parents[1] / "conda"
 
 
-def merge(a, b):
+def read(f):
+    with open(f) as fp:
+        return yaml.safe_load(fp.read())
+
+
+def merge(*args):
+    # destructive merge
     def assignments(d: list):
         return dict(i.partition("=")[::2] for i in d)
 
@@ -19,42 +30,64 @@ def merge(a, b):
 
         return res, pip
 
-    # destructively merge b into a
-    assert type(a) is type(b) is dict
+    if not args:
+        return []
 
-    if ch := b.pop('channels', None):
-        a['channels'] = ch
+    a, *args = args
 
-    dep_b = b.pop('dependencies', [])
-    dep_a = a['dependencies']
+    for b in args:
+        if ch := b.pop('channels', None):
+            a['channels'] = ch
 
-    dep_a[:], pip_a = get_pip(dep_a)
-    dep_b[:], pip_b = get_pip(dep_b)
+        dep_b = b.pop('dependencies', [])
+        dep_a = a['dependencies']
 
-    assign = assignments(dep_a) | assignments(dep_b)
+        dep_a[:], pip_a = get_pip(dep_a)
+        dep_b[:], pip_b = get_pip(dep_b)
 
-    if remove := b.pop("-dependencies", None):
-        for r in remove:
-            assign.pop(r)
+        assign = assignments(dep_a) | assignments(dep_b)
+
+        if remove := b.pop("-dependencies", None):
+            for r in remove:
+                assign.pop(r)
+            dep_a[:] = from_assignments(assign)
+
         dep_a[:] = from_assignments(assign)
+        if pip := pip_a + pip_b:
+            dep_a.append({"pip": pip})
 
-    dep_a[:] = from_assignments(assign)
-    if pip := pip_a + pip_b:
-        dep_a.append({"pip": pip})
+        assert not b, b
 
-    assert not b, b
     return a
 
 
+@functools.cache
+def configs():
+    files = {f.stem: read(f) for f in TEMPLATE_DIR.glob("*.yaml")}
+    result = {}
+
+    while files:
+        for f, tpl in list(files.items()):
+            prefix, _, suffix = f.partition('+')
+            if not suffix:
+                result[prefix] = tpl
+                files.pop(f)
+            elif exists := copy.deepcopy(result.get(suffix)):
+                result[prefix] = merge(exists, tpl)
+                files.pop(f)
+
+    return result
+
+
 if __name__ == '__main__':
-    import sys
+    if True:
+        print(*configs())
+    else:
+        import sys
 
-    _, first, *rest = sys.argv
-    with open(first) as fp:
-        result = yaml.safe_load(fp.read())
+        _, first, *rest = sys.argv
+        result = read(first)
+        for f in rest:
+            merge(result, read(f))
 
-    for f in rest:
-        with open(f) as fp:
-            merge(result, yaml.safe_load(fp.read()))
-
-    print(yaml.safe_dump(result))
+        print(yaml.safe_dump(result))
