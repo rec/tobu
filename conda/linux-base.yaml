@@ -1,0 +1,38 @@
+dependencies:
+# Select compiler-version (optional, but recommended)
+# These are pulled in by cuda-nvcc implicitly
+- gcc=13
+- gxx=13
+# Add GDB, to bundle in py-bt support.
+- gdb
+# Certain features (like cpp_wrapper for inductor) can be tested in clang as
+# well.
+- clang
+- clangxx
+- lldb
+
+# CUDA requirements, even if using system CUDA
+- magma
+- cuda-driver-dev
+- cuda-version=12.6
+- cudnn
+- conda-gcc-specs # Needed for triton to find libcuda.so
+
+# The following 6 packages install cudatoolkit
+# Not necessary in qgpu as it's installed system-wide
+- cuda-libraries-dev
+- cuda-nvcc
+- cuda-gdb
+- cuda-nvtx-dev
+- cuda-nvml-dev
+- cuda-cupti-dev
+
+- mkl
+- mkl-include
+
+- sysroot_linux-64>=2.17
+
+- lintrunner
+
+# torch.compile halide backend
+- halide-python
