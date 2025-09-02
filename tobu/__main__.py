@@ -38,6 +38,9 @@ def tobu(
     dry_run: bool = Option(
         True, '--dry-run', '-d', help='Just print the bash commands, do not execute'
     ),
+    conda_env: str = Option(
+        None, '--conda-env', '-e', help="Name of the conda env to use (otherwise guess from root directory)",
+    ),
     root_directory: Path = Option(
         _root_directory(), '--root-directory', '-r', help='Root directory above pytorch'
     ),
@@ -49,16 +52,16 @@ def tobu(
     ),
 ):
     STATE.__dict__.update(locals())
-
+    STATE.conda_env = STATE.conda_env or root_directory.name
 
 
 @app.command(help='Clone the repos')
 def clone(
-    all_: bool = Option(
-        False, '--all', '-a', name="_all", help="Update all of the repository, not just pytorch"
+    branch: str = Argument(
+        'viable/strict', help='The branch to clone from'
     ),
-    ref: str = Argument(
-        'upstream/viable/strict', help='The ref ID to use'
+    all_: bool = Option(
+        False, '--all', '-a', name="all", help="Update all of the repository, not just pytorch"
     ),
     fetch: bool = Option(
         False, '--fetch', '-f', help='Run git fetch on upstream before starting',
@@ -76,7 +79,7 @@ def clone(
     bash(f"""
         mkdir -p {STATE.root_directory}
         cd {STATE.root_directory}
-        git clone git@github.com:${STATE.user}/pytorch.git
+        git clone git@github.com:${STATE.user}/pytorch.git -b ${ref}
         cd pytorch
         git submodule update --init --recursive
         {add_remote}
@@ -87,6 +90,15 @@ def clone(
             bash(f"git clone git@github.com:pytorch/{lib}.git")
 
 
+ENVS =
+
+
+@app.command(help='Create the conda env')
+def env(
+    env
+):
+
+
 @app.command(help='')
 def update(
     all_: bool = Option(
@@ -95,19 +107,6 @@ def update(
     ref: str = Argument(
         'upstream/viable/strict', help='The ref ID to use'
     ),
-):
-    pass
-
-
-@app.command(help='')
-def env(
-):
-    pass
-
-
-
-@app.command(help='')
-def set(
 ):
     pass
 
